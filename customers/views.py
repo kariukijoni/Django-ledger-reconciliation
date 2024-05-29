@@ -1,6 +1,6 @@
 # views.py
 from django.shortcuts import render
-from django.http import HttpResponse
+from django.http import HttpResponse,JsonResponse
 import pandas as pd
 from .forms import UploadFileForm
 from .models import Customers
@@ -18,3 +18,14 @@ def upload_file(request):
     else:
         form = UploadFileForm()
     return render(request, 'upload.html', {'form': form})
+
+
+def customer_list_view(request):
+    # customers = Customers.objects.all()
+    return render(request, 'customer_list.html')
+
+
+def customer_list_data(request):
+    customers = Customers.objects.all().values('code', 'name', 'tel', 'route')
+    data = list(customers)
+    return JsonResponse({'data': data})
