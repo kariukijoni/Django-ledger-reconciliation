@@ -8,10 +8,31 @@
     <link rel="stylesheet" href="https://cdn.datatables.net/buttons/1.7.1/css/buttons.dataTables.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
 
+    <style>
+        .loader {
+            border: 16px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 16px solid #3498db;
+            width: 120px;
+            height: 120px;
+            animation: spin 2s linear infinite;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+    
 </head>
 <body>
     <div class='container'>
-        <h1>Customer List</h1>
+        <h1 class='text-center'>Customer List</h1>
+        <div class="loader" id="loader"></div>
         <table id="customerTable" class="display">
             <thead>
                 <tr>
@@ -43,23 +64,28 @@
 
     <script>
         $(document).ready(function() {
-            $('#customerTable').DataTable({
-                ajax: {
-                    url: '{% url "customer_list_data" %}',
-                    dataSrc: 'data'
-                },
-                columns: [
-                    { data: 'code' },
-                    { data: 'name' },
-                    { data: 'tel' },
-                    { data: 'route' }
-                ],
-                pageLength: 20,  // Default number of rows
-                dom: 'Bfrtip',
-                buttons: [
-                    'copy', 'csv', 'excel', 'pdf', 'print'
-                ]
-            });
+            setTimeout(function() {
+                $('#loader').hide();
+                $('#customerTable').show();
+
+                $('#customerTable').DataTable({
+                    ajax: {
+                        url: '{% url "customer_list_data" %}',
+                        dataSrc: 'data'
+                    },
+                    columns: [
+                        { data: 'code' },
+                        { data: 'name' },
+                        { data: 'tel' },
+                        { data: 'route' }
+                    ],
+                    pageLength: 20,  // Default number of rows
+                    dom: 'Bfrtip',
+                    buttons: [
+                        'copy', 'csv', 'excel', 'pdf', 'print'
+                    ]
+                });
+            },50);
         });
     </script>
 </body>

@@ -1,10 +1,16 @@
 from django.shortcuts import render
+from django.http import JsonResponse
 from .forms import UploadFileForm
 import pandas as pd
 from .models import Transaction
 import re
 from datetime import datetime
 from .filters import TransactionFilter
+from django.db import IntegrityError
+import logging
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 def separate_narrative(request):
     transactions = Transaction.objects.all()
@@ -68,7 +74,6 @@ def extract_details_from_narrative(narrative):
     return phone_number, payment_code, till_number, customer_name
     # return phone_number, payment_code, customer_name
 
-
 def convert_date_format(date_str):
     if pd.isna(date_str):  # Check if the value is NaN
         return None  # Return None for NaN values
@@ -78,15 +83,13 @@ def convert_date_format(date_str):
     except ValueError:
         return None
 
-def handle_decimal_value(value_str):
-    if pd.isna(value_str):  # Check if the value is NaN
+def handle_decimal_value(value):
+    if pd.isna(value):  # Check if the value is NaN
         return 0  # Replace NaN with a default value (e.g., 0)
     try:
-        value = float(value_str.replace(',', ''))  # Remove commas and convert to float
+        return float(str(value).replace(',', ''))
     except ValueError:
-        value = 0  # Default value if conversion fails
-    return value
-
+        return 0
 
 def upload_file(request):
     if request.method == 'POST':
@@ -94,27 +97,75 @@ def upload_file(request):
         if form.is_valid():
             file = request.FILES['file']
             df = pd.read_excel(file)
+
+            duplicate_count = 0
+
+            total_records = 0
+
             for index, row in df.iterrows():
                 transaction_date = convert_date_format(row['Transaction Date'])
                 value_date = convert_date_format(row['Value Date'])
+
                 if transaction_date and value_date:
-                    phone_number, payment_code, till_number, customer_name = extract_details_from_narrative(row['Narrative'])
-                    Transaction.objects.create(
-                        transaction_date=transaction_date,
-                        value_date = value_date,
-                        narrative = row['Narrative'],
-                        debit = handle_decimal_value(row['Debit']),
-                        credit = handle_decimal_value(row['Credit']),
-                        running_balance = handle_decimal_value(row['Running Balance']),
-                        phone_number = phone_number,
-                        payment_code = payment_code,
-                        till_number = till_number,
-                        customer_name = customer_name
-                    )
+                    phone_number, payment_code,till_number, customer_name = extract_details_from_narrative(row['Narrative'])
+
+                    if payment_code:
+                        # Check for existing transaction with the same payment_code
+                        if Transaction.objects.filter(payment_code=payment_code).exists():
+                            # If a duplicate is found, log it and increment the duplicate count
+                            logger.warning(f'Duplicate payment code {payment_code} at row {index}')
+                            duplicate_count += 1
+
+                        else:
+
+                            try:
+                                Transaction.objects.create(
+                                    transaction_date=transaction_date,
+                                    value_date=value_date,
+                                    narrative=row['Narrative'],
+                                    debit=handle_decimal_value(row['Debit']),
+                                    credit=handle_decimal_value(row['Credit']),
+                                    running_balance=handle_decimal_value(row['Running Balance']),
+                                    phone_number=phone_number,
+                                    payment_code=payment_code,
+                                    till_number=till_number,
+                                    customer_name=customer_name
+
+                                )
+                                total_records += 1
+                            except IntegrityError:
+
+                                # Handle duplicate payment_code from database constraints
+                                logger.warning(f'Duplicate payment code {payment_code} at row {index}')
+
+                                duplicate_count += 1
+                    else:
+                        # Handle case where payment_code is None or empty
+                        logger.warning(f'Payment code missing at row {index}')
                 else:
-                    # Handle invalid date format
-                    pass
-            return render(request, 'success.html')
+                    # Handle invalid date format (e.g., log the error or skip the record)
+                    logger.warning(f'Invalid date format at row {index}')
+
+            context = {
+                'duplicate_count': duplicate_count,
+                'total_records': total_records
+            }
+
+            return render(request, 'success.html', context)
     else:
+
         form = UploadFileForm()
+
     return render(request, 'upload.html', {'form': form})
+
+def transaction_list_view(request):
+
+    return render(request, 'transaction_list.html')
+
+def transaction_list_data(request):
+    transactions = Transaction.objects.all().values('transaction_date', 'value_date','customer_name', 'phone_number', 'payment_code',
+                                             'till_number','debit','credit')
+    
+    data = list(transactions)
+
+    return JsonResponse({'data': data})
