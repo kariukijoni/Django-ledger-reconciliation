@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Separate Narrative</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+</head>
+<body>
+    <div class='container'>
+        <h2 class='text-center'>Transactions with Separated Narrative</h2>
+        <div class='row'>
+            <form method="get">
+                {{ trans_filter.form.till_number }}
+                <button class='btn btn-primary' type="submit">Filter</button>
+            </form>
+            {% if has_filter %}
+                <a href="{%  url 'transactions' %}">Clear all filters</a>
+            {% endif %}
+        </div>
+        <table border="1" class='table table-responsive-sm table-sm'>
+            <thead>
+                <tr>
+                    <th>Transaction Date</th>
+                    <th>Value Date</th>
+                    <th>Narrative</th>
+                    <th>Debit</th>
+                    <th>Credit</th>
+                    <th>Running Balance</th>
+                    <th>Phone Number</th>
+                    <th>Payment Code</th>
+                    <th>Till Number</th>
+                    <th>Customer Name</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for transaction in trans_filter.qs %}
+                <tr>
+                    <td>{{ transaction.transaction_date }}</td>
+                    <td>{{ transaction.value_date }}</td>
+                    <td>{{ transaction.narrative }}</td>
+                    <td>{{ transaction.debit }}</td>
+                    <td>{{ transaction.credit }}</td>
+                    <td>{{ transaction.running_balance }}</td>
+                    <td>{{ transaction.phone_number }}</td>
+                    <td>{{ transaction.payment_code }}</td>
+                    <td>{{ transaction.till_number }}</td>
+                    <td>{{ transaction.customer_name }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <style>
+            .table {
+                font-size: 7pt;
+            }
+        
+        </style>
+    <div>
+</body>
+</html>
