@@ -40,6 +40,9 @@ INSTALLED_APPS = [
     
     'app',
     'django_filters',
+    'customers',
+    'import_export',
+    'rest_framework'
 ]
 
 MIDDLEWARE = [
