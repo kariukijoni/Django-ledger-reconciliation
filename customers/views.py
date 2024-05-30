@@ -1,11 +1,12 @@
 # views.py
 from django.shortcuts import render
-from django.http import HttpResponse,JsonResponse
+from django.http import HttpResponse,JsonResponse,HttpResponseRedirect
 import pandas as pd
+from django.urls import reverse
 from .forms import UploadFileForm
-from .models import Customers
+from .models import Customers,Debtors
 
-def upload_file(request):
+def customer_upload_file(request):
     if request.method == 'POST':
         form = UploadFileForm(request.POST, request.FILES)
         if form.is_valid():
@@ -29,3 +30,51 @@ def customer_list_data(request):
     customers = Customers.objects.all().values('code', 'name', 'tel', 'route')
     data = list(customers)
     return JsonResponse({'data': data})
+
+
+def handle_uploaded_file(file):
+    df = pd.read_excel(file)
+    duplicates = []
+    success_count = 0
+
+    for index, row in df.iterrows():
+        code = str(row['Companyid']).strip() if not pd.isna(row['Companyid']) else ''
+        name = str(row['Name']).strip() if not pd.isna(row['Name']) else ''
+        total_owing = row['Total Owing'] if not pd.isna(row['Total Owing']) else 0.0
+
+        # Check if company_id already exists
+        if Debtors.objects.filter(code=code).exists():
+            duplicates.append({
+                'code': code,
+                'name': name,
+                'total_owing': total_owing
+            })
+        else:
+            # Create the company record
+            Debtors.objects.create(
+                code=code,
+                name=name,
+                total_owing=total_owing
+            )
+            success_count += 1
+    
+    return success_count, len(duplicates)
+
+
+def debtors_upload_file(request):
+    if request.method == 'POST':
+        form = UploadFileForm(request.POST, request.FILES)
+        if form.is_valid():
+            success_count, duplicate_count = handle_uploaded_file(request.FILES['file'])
+            return render(request, 'debtors.html', {
+                'form': form, 
+                'success_count': success_count, 
+                'duplicate_count': duplicate_count
+            })
+    else:
+        form = UploadFileForm()
+    return render(request, 'debtors.html', {
+        'form': form, 
+        'success_count': 0, 
+        'duplicate_count': 0
+    })
