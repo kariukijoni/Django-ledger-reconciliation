@@ -1,12 +1,11 @@
 # views.py
 from django.shortcuts import render
-from django.http import HttpResponse,JsonResponse,HttpResponseRedirect
+from django.http import HttpResponse,JsonResponse
 import pandas as pd
-from django.urls import reverse
 from .forms import UploadFileForm
 from .models import Customers,Debtors
 
-def customer_upload_file(request):
+def customers_upload_file(request):
     if request.method == 'POST':
         form = UploadFileForm(request.POST, request.FILES)
         if form.is_valid():
@@ -18,15 +17,15 @@ def customer_upload_file(request):
             return HttpResponse('File uploaded successfully!')
     else:
         form = UploadFileForm()
-    return render(request, 'upload.html', {'form': form})
+    return render(request, 'customers_upload.html', {'form': form})
 
 
-def customer_list_view(request):
+def customers_list_view(request):
     # customers = Customers.objects.all()
-    return render(request, 'customer_list.html')
+    return render(request, 'customers_list.html')
 
 
-def customer_list_data(request):
+def customers_list_data(request):
     customers = Customers.objects.all().values('code', 'name', 'tel', 'route')
     data = list(customers)
     return JsonResponse({'data': data})
@@ -57,7 +56,7 @@ def handle_uploaded_file(file):
                 total_owing=total_owing
             )
             success_count += 1
-    
+
     return success_count, len(duplicates)
 
 
@@ -66,15 +65,26 @@ def debtors_upload_file(request):
         form = UploadFileForm(request.POST, request.FILES)
         if form.is_valid():
             success_count, duplicate_count = handle_uploaded_file(request.FILES['file'])
-            return render(request, 'debtors.html', {
-                'form': form, 
-                'success_count': success_count, 
+            return render(request, 'debtors_upload.html', {
+                'form': form,
+                'success_count': success_count,
                 'duplicate_count': duplicate_count
             })
     else:
         form = UploadFileForm()
-    return render(request, 'debtors.html', {
-        'form': form, 
-        'success_count': 0, 
+    return render(request, 'debtors_upload.html', {
+        'form': form,
+        'success_count': 0,
         'duplicate_count': 0
     })
+
+
+def debtors_list_view(request):
+    # customers = Customers.objects.all()
+    return render(request, 'debtors_list.html')
+
+
+def debtors_list_data(request):
+    debtors = Debtors.objects.all().values('code', 'name', 'total_owing')
+    data = list(debtors)
+    return JsonResponse({'data': data})

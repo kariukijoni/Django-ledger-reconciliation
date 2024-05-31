@@ -1,11 +1,14 @@
 # urls.py
 from django.urls import path
-from .views import customer_upload_file,customer_list_view,customer_list_data,debtors_upload_file
+from .views import customers_upload_file, customers_list_view, customers_list_data, debtors_upload_file, debtors_list_view, debtors_list_data
 
 urlpatterns = [
-    path('customer_upload/', customer_upload_file, name='customer_upload_file'),
-    path('', customer_list_view, name='customer_list'),
-    path('api/customers/', customer_list_data, name='customer_list_data'),
+    path('', customers_list_view, name='customers_list'),
+    path('customers_upload/', customers_upload_file, name='customers_upload_file'),
+    path('api/customers/', customers_list_data, name='customers_list_data'),
 
     path('debtors_upload/', debtors_upload_file, name='debtors_upload_file'),
+    path('debtors/', debtors_list_view, name='debtors_list'),
+    path('api/debtors/', debtors_list_data, name='debtors_list_data'),
+
 ]

@@ -156,7 +156,7 @@ def upload_file(request):
 
         form = UploadFileForm()
 
-    return render(request, 'upload.html', {'form': form})
+    return render(request, 'transaction_upload.html', {'form': form})
 
 def transaction_list_view(request):
 
@@ -165,7 +165,7 @@ def transaction_list_view(request):
 def transaction_list_data(request):
     transactions = Transaction.objects.all().values('transaction_date', 'value_date','customer_name', 'phone_number', 'payment_code',
                                              'till_number','debit','credit')
-    
+
     data = list(transactions)
 
     return JsonResponse({'data': data})

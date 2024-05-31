@@ -1,7 +1,7 @@
-{% extends 'base.html' %}
+{% extends 'core/base.html' %}
 
 {% block content %}
-        <h1 class='text-center'>Transaction List</h1>
+        <h3 class='text-center'>Transaction List</h3>
         <div class="loader" id="loader"></div>
         <table id="transactionTable" class="display" style="display: none;">
             <thead>
@@ -23,6 +23,7 @@
 {% endblock content%}
 
 {% block script%}
+
     <script>
         $(document).ready(function() {
             setTimeout(function() {
@@ -55,12 +56,12 @@
                     'background-color': '#4CAF50',
                     'color': 'white',
                     'border': 'none',
-                    'padding': '5px 12px', // Reduced padding
-                    'border-radius': '4px',
-                    'font-size': '12px', // Smaller font size
+                    'padding': '5px 10px', // Reduced padding
+                    'border-radius': '5px',
+                    'font-size': '10px', // Smaller font size
                     'margin': '2px'
                     });
-            
+
                     $('.dt-button').hover(
                         function() {
                             $(this).css('background-color', '#45a049');
@@ -68,11 +69,12 @@
                         function() {
                             $(this).css('background-color', '#4CAF50');
                         }
-                    );              
-            }, 5); // Adjust delay as needed (2000 milliseconds = 2 seconds)
+                    );
+            },); // Adjust delay as needed (2000 milliseconds = 2 seconds)
         });
+
     </script>
-    
+
 {% endblock script%}
 
 </body>

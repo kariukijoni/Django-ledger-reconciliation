@@ -1,0 +1,15 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<h3>Upload Customers Excel File</h3>
+<hr>
+<div class="row">
+  <div class="card card-body">
+      <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          {{ form.as_p }}
+          <button class="btn btn-primary btn-sm" type="submit">Upload</button>
+      </form>
+  </div>
+</div>
+{% endblock content %}

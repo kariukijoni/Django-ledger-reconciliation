@@ -1,0 +1,22 @@
+
+{% extends 'core/base.html' %}
+
+{% block content %}
+<h3>Upload Debtors Excel File</h3>
+<hr>
+<div class="row">
+  <div class="card card-body">
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button class="btn btn-primary btn-sm" type="submit">Upload</button>
+    </form>
+
+    {% if success_count or duplicate_count %}
+        <h2>Upload Results</h2>
+        <p>Successfully uploaded: {{ success_count }}</p>
+        <p>Duplicates found: {{ duplicate_count }}</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock content %}
