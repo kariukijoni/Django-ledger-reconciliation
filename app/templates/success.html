@@ -1,11 +1,8 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Success</title>
-</head>
-<body>
+
+{% extends 'core/base.html' %}
+
+{% block content %}
     <h1>File Upload Successful</h1>
     <p>Total records processed: {{ total_records }}</p>
     <p>Duplicate records skipped: {{ duplicate_count }}</p>
-</body>
-</html>
+{% endblock content %}

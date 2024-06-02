@@ -1,45 +1,10 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Payment Matching Results</title>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-    <script>
-        function matchPayment(customerCode, phoneNumber, transactionId, confirmMatch = false) {
-            $.ajax({
-                type: 'POST',
-                url: '{% url "ajax_match_payments" %}',
-                data: {
-                    'customer_code': customerCode,
-                    'phone_number': phoneNumber,
-                    'transaction_id': transactionId,
-                    'confirm_match': confirmMatch,
-                    'csrfmiddlewaretoken': '{{ csrf_token }}'
-                },
-                success: function(response) {
-                    if (response.status === 'success') {
-                        alert(response.message);
-                        // Optionally, update the UI to reflect the matched payment
-                        location.reload(); // Reload the page to update the status
-                    } else if (response.status === 'confirm') {
-                        if (confirm(response.message)) {
-                            matchPayment(customerCode, phoneNumber, transactionId, true);
-                        }
-                    } else {
-                        alert('Error: ' + response.message);
-                    }
-                },
-                error: function(xhr, status, error) {
-                    alert('AJAX Error: ' + error);
-                }
-            });
-        }
-    </script>
-</head>
-<body>
-    <h1>Payment Matching Results</h1>
+{% extends 'core/base.html' %}
+
+{% block content %}
+    <h3 class="text-center">Payments</h3>
 
     <h2>Matched Payments</h2>
-    <table>
+    <table class="table">
         <thead>
             <tr>
                 <th>Debtor Name</th>
@@ -63,7 +28,7 @@
     </table>
 
     <h2>Unmatched Payments</h2>
-    <table>
+    <table class="table">
         <thead>
             <tr>
                 <th>Debtor Name</th>
@@ -89,5 +54,39 @@
             {% endfor %}
         </tbody>
     </table>
-</body>
-</html>
+{% endblock content %}
+
+{% block script %}
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script>
+    function matchPayment(customerCode, phoneNumber, transactionId, confirmMatch = false) {
+        $.ajax({
+            type: 'POST',
+            url: '{% url "ajax_match_payments" %}',
+            data: {
+                'customer_code': customerCode,
+                'phone_number': phoneNumber,
+                'transaction_id': transactionId,
+                'confirm_match': confirmMatch,
+                'csrfmiddlewaretoken': '{{ csrf_token }}'
+            },
+            success: function(response) {
+                if (response.status === 'success') {
+                    alert(response.message);
+                    // Optionally, update the UI to reflect the matched payment
+                    location.reload(); // Reload the page to update the status
+                } else if (response.status === 'confirm') {
+                    if (confirm(response.message)) {
+                        matchPayment(customerCode, phoneNumber, transactionId, true);
+                    }
+                } else {
+                    alert('Error: ' + response.message);
+                }
+            },
+            error: function(xhr, status, error) {
+                alert('AJAX Error: ' + error);
+            }
+        });
+    }
+</script>
+{% endblock script %}
