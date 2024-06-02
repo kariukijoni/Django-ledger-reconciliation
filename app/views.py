@@ -1,13 +1,15 @@
-from django.shortcuts import render
-from django.http import JsonResponse
-from .forms import UploadFileForm
+from django.shortcuts import render, redirect, get_object_or_404
+from django.http import JsonResponse,HttpResponse, HttpResponseBadRequest
+from .forms import UploadFileForm, ConfirmMatchForm
 import pandas as pd
-from .models import Transaction
+from .models import Transaction, MatchedPayment
 import re
 from datetime import datetime
 from .filters import TransactionFilter
 from django.db import IntegrityError
 import logging
+
+from customers.models import Customers, Debtors
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -169,3 +171,218 @@ def transaction_list_data(request):
     data = list(transactions)
 
     return JsonResponse({'data': data})
+
+
+def match_paymentsd(request):
+    matches = []
+
+    # Get all customers
+    customers = Customers.objects.all()
+
+    for customer in customers:
+        # Find the corresponding debtor
+        try:
+            debtor = Debtors.objects.get(code=customer.code)
+        except Debtors.DoesNotExist:
+            continue
+
+        # Find transactions that match the conditions
+        transactions = Transaction.objects.filter(
+            phone_number=customer.tel,
+            credit__gt=0,
+            status='unused'
+        )
+
+        for transaction in transactions:
+            # Check if debtor.total_owing is equal to transaction.credit
+            if debtor.total_owing == transaction.credit:
+                # Update the debtor's total_owing
+                debtor.total_owing -= transaction.credit
+                debtor.save()
+
+                # Create a matched payment entry
+                matched_payment = MatchedPayment(
+                    debtor=debtor,
+                    transaction=transaction,
+                    customer_code=customer.code,
+                    phone_number=customer.tel
+                )
+                matched_payment.save()
+
+                # Mark the transaction as used
+                transaction.status = 'used'
+                transaction.save()
+
+                # Append match details for display
+                matches.append({
+                    'debtor_name': debtor.name,
+                    'transaction_date': transaction.transaction_date,
+                    'amount': transaction.credit,
+                    'customer_code': customer.code,
+                    'phone_number': customer.tel
+                })
+            else:
+                # Redirect to confirmation page
+                return redirect('confirm_match', debtor_id=debtor.id, transaction_id=transaction.id)
+
+    # Render the results to a template (or return a simple HttpResponse)
+    return render(request, 'match_results.html', {'matches': matches})
+
+
+def confirm_match(request, debtor_id, transaction_id):
+    debtor = get_object_or_404(Debtors, id=debtor_id)
+    transaction = get_object_or_404(Transaction, id=transaction_id)
+    customer = get_object_or_404(Customers, tel=transaction.phone_number)
+
+    if request.method == 'POST':
+        form = ConfirmMatchForm(request.POST)
+        if form.is_valid():
+            confirm = form.cleaned_data['confirm']
+            if confirm:
+                # Update the debtor's total_owing
+                debtor.total_owing -= transaction.credit
+                debtor.save()
+
+                # Create a matched payment entry
+                matched_payment = MatchedPayment(
+                    debtor=debtor,
+                    transaction=transaction,
+                    customer_code=customer.code,
+                    phone_number=customer.tel
+                )
+                matched_payment.save()
+
+                # Mark the transaction as used
+                transaction.status = 'used'
+                transaction.save()
+
+            return redirect('view_matched_payments')
+    else:
+        form = ConfirmMatchForm(initial={
+            'debtor_id': debtor.id,
+            'transaction_id': transaction.id
+        })
+
+    return render(request, 'confirm_match.html', {
+        'form': form,
+        'debtor': debtor,
+        'transaction': transaction
+    })
+
+def view_matched_payments(request):
+    matched_payments = MatchedPayment.objects.all().select_related('debtor', 'transaction')
+
+    matches = [{
+        'debtor_name': mp.debtor.name,
+        'transaction_date': mp.transaction.transaction_date,
+        'amount': mp.transaction.credit,
+        'matched_date': mp.matched_date,
+        'customer_code': mp.customer_code,
+        'phone_number': mp.phone_number
+
+    } for mp in matched_payments]
+
+    return render(request, 'view_matched_results.html', {'matches': matches})
+
+
+def ajax_match_payments(request):
+    if request.method == 'POST':
+        customer_code = request.POST.get('customer_code')
+        phone_number = request.POST.get('phone_number')
+        transaction_id = request.POST.get('transaction_id')
+        confirm_match = request.POST.get('confirm_match', 'false') == 'true'
+
+        try:
+            customer = get_object_or_404(Customers, code=customer_code, tel=phone_number)
+            debtor = get_object_or_404(Debtors, code=customer_code)
+            transaction = get_object_or_404(Transaction, id=transaction_id, phone_number=phone_number)
+
+            if debtor.total_owing == transaction.credit or confirm_match:
+                # Update the debtor's total_owing
+                debtor.total_owing -= transaction.credit
+                debtor.save()
+
+                # Create a matched payment entry
+                matched_payment = MatchedPayment(
+                    debtor=debtor,
+                    transaction=transaction,
+                    customer_code=customer.code,
+                    phone_number=customer.tel
+                )
+                matched_payment.save()
+
+                # Mark the transaction as used
+                transaction.status = 'used'
+                transaction.save()
+
+                response = {
+                    'status': 'success',
+                    'message': 'Payment matched successfully.',
+                    'debtor_name': debtor.name,
+                    'transaction_date': transaction.transaction_date,
+                    'amount': transaction.credit,
+                    'customer_code': customer.code,
+                    'phone_number': customer.tel
+                }
+            else:
+                response = {
+                    'status': 'confirm',
+                    'message': 'Debtor total owing does not match transaction credit. Do you want to match anyway?',
+                    'debtor_name': debtor.name,
+                    'transaction_date': transaction.transaction_date,
+                    'amount': transaction.credit,
+                    'customer_code': customer.code,
+                    'phone_number': customer.tel,
+                    'transaction_id': transaction.id
+                }
+
+            return JsonResponse(response)
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)})
+
+    return HttpResponseBadRequest('Invalid request method.')
+
+
+def match_payments(request):
+    matches = []
+    unmatched = []
+
+    # Get all customers
+    customers = Customers.objects.all()
+
+    for customer in customers:
+        # Find the corresponding debtor
+        try:
+            debtor = Debtors.objects.get(code=customer.code)
+        except Debtors.DoesNotExist:
+            continue
+
+        # Find transactions that match the conditions
+        transactions = Transaction.objects.filter(
+            phone_number=customer.tel,
+            credit__gt=0,
+            status='unused'
+        )
+
+        for transaction in transactions:
+            if debtor.total_owing == transaction.credit:
+                matches.append({
+                    'debtor_name': debtor.name,
+                    'transaction_date': transaction.transaction_date,
+                    'amount': transaction.credit,
+                    'customer_code': customer.code,
+                    'phone_number': customer.tel,
+                    'transaction_id': transaction.id
+                })
+            else:
+                unmatched.append({
+                    'debtor_name': debtor.name,
+                    'transaction_date': transaction.transaction_date,
+                    'amount': transaction.credit,
+                    'customer_code': customer.code,
+                    'phone_number': customer.tel,
+                    'transaction_id': transaction.id
+                })
+
+    # Render the results to a template
+    return render(request, 'match_results.html', {'matches': matches, 'unmatched': unmatched})

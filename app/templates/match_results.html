@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Payment Matching Results</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script>
+        function matchPayment(customerCode, phoneNumber, transactionId, confirmMatch = false) {
+            $.ajax({
+                type: 'POST',
+                url: '{% url "ajax_match_payments" %}',
+                data: {
+                    'customer_code': customerCode,
+                    'phone_number': phoneNumber,
+                    'transaction_id': transactionId,
+                    'confirm_match': confirmMatch,
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+                },
+                success: function(response) {
+                    if (response.status === 'success') {
+                        alert(response.message);
+                        // Optionally, update the UI to reflect the matched payment
+                        location.reload(); // Reload the page to update the status
+                    } else if (response.status === 'confirm') {
+                        if (confirm(response.message)) {
+                            matchPayment(customerCode, phoneNumber, transactionId, true);
+                        }
+                    } else {
+                        alert('Error: ' + response.message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    alert('AJAX Error: ' + error);
+                }
+            });
+        }
+    </script>
+</head>
+<body>
+    <h1>Payment Matching Results</h1>
+
+    <h2>Matched Payments</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Debtor Name</th>
+                <th>Transaction Date</th>
+                <th>Amount</th>
+                <th>Customer Code</th>
+                <th>Phone Number</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for match in matches %}
+                <tr>
+                    <td>{{ match.debtor_name }}</td>
+                    <td>{{ match.transaction_date }}</td>
+                    <td>{{ match.amount }}</td>
+                    <td>{{ match.customer_code }}</td>
+                    <td>{{ match.phone_number }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>Unmatched Payments</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Debtor Name</th>
+                <th>Transaction Date</th>
+                <th>Amount</th>
+                <th>Customer Code</th>
+                <th>Phone Number</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for match in unmatched %}
+                <tr>
+                    <td>{{ match.debtor_name }}</td>
+                    <td>{{ match.transaction_date }}</td>
+                    <td>{{ match.amount }}</td>
+                    <td>{{ match.customer_code }}</td>
+                    <td>{{ match.phone_number }}</td>
+                    <td>
+                        <button onclick="matchPayment('{{ match.customer_code }}', '{{ match.phone_number }}', '{{ match.transaction_id }}')">Match Payment</button>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

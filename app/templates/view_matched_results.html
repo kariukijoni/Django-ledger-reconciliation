@@ -1,0 +1,30 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+  <h3>Matched Payments</h3>
+<hr>
+<div class="row">
+  <table class="table table-sm">
+       <thead>
+           <tr>
+               <th>Debtor Name</th>
+               <th>Transaction Date</th>
+               <th>Amount</th>
+               <th>Customer Code</th>
+               <th>Phone Number</th>
+           </tr>
+       </thead>
+       <tbody>
+           {% for match in matches %}
+               <tr>
+                   <td>{{ match.debtor_name }}</td>
+                   <td>{{ match.transaction_date }}</td>
+                   <td>{{ match.amount }}</td>
+                   <td>{{ match.customer_code }}</td>
+                   <td>{{ match.phone_number }}</td>
+               </tr>
+           {% endfor %}
+       </tbody>
+   </table>
+</div>
+{% endblock content %}

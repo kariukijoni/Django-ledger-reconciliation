@@ -1,7 +1,10 @@
 {% extends 'core/base.html' %}
 
 {% block content %}
-        <h3 class='text-center'>Debtors List</h3>
+        <h3 class='text-center'>Debtors List |
+          <a href="{%url 'match_payments' %}">Merge Payments </a>
+        </h3>
+
         <div class="loader" id="loader"></div>
         <table id="debtorTable" class="display">
             <thead>
